@@ -1,88 +1,62 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Código Pijamada</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f4f0ff;
-  padding: 20px;
-}
-.container {
-  max-width: 420px;
-  margin: auto;
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 10px 25px rgba(0,0,0,.1);
-}
-h1 { text-align: center; }
-select, input, button {
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-}
-button {
-  background: #6c4bdc;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-}
-.muted { text-align:center; color:#666; font-size:14px; }
-</style>
-</head>
-<body>
-<div class="container">
-<h1>Código Pijamada</h1>
-<p class="muted">Sistema oficial anti-peleas 😎</p>
-
-<label>Participante</label>
-<select id="sobrino">
-  <option value="">Elegí tu nombre</option>
-</select>
-
-<label>Día</label>
-<input type="date" id="fecha">
-
-<label>
-<input type="checkbox" id="plus"> Solicitar plus pijamada
-</label>
-
-<button onclick="reservar()">Enviar solicitud</button>
-
-<p id="msg" class="muted"></p>
-</div>
-
-<script>
-const sobrinos = [
-  "Luz",
-  "Vicky",
-  "Agus",
-  "Dan",
-  "Pili"
-];
-
-const select = document.getElementById("sobrino");
-sobrinos.forEach(n => {
-  const o = document.createElement("option");
-  o.value = n;
-  o.textContent = n;
-  select.appendChild(o);
-});
-
-function reservar(){
-  const s = select.value;
-  const f = document.getElementById("fecha").value;
-  if(!s || !f){
-    alert("Falta elegir nombre o día");
-    return;
-  }
-  document.getElementById("msg").textContent =
-    "Solicitud enviada ✔️ La tía decidirá.";
-}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Código Pijamada</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f6f2ff;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      cursor: pointer;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 14px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    select, input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    button {
+      background: #7c5cff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover {
+      background: #6847ff;
+    }
+    .reserva {
+      background: #f0ecff;
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    .panel-tia {
+      display: none;
+      margin-top: 25px;
+    }
 </script>
 </body>
 </html>
