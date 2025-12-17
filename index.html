@@ -8,9 +8,10 @@
   body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f5; }
   h1, h2 { text-align: center; color: #333; }
   .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; max-width: 700px; margin: 20px auto; }
-  .day, .weekday { padding: 10px; text-align: center; border-radius: 8px; }
+  .day, .weekday { padding: 10px; text-align: center; border-radius: 8px; min-height: 60px; display: flex; flex-direction: column; justify-content: center; }
   .weekday { font-weight: bold; background: #74b9ff; color: white; }
   .day { background: white; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+  .day.taken { cursor: not-allowed; opacity: 0.6; }
   .pending { background: #ffeaa7; }
   .approved { background: #55efc4; }
   .rejected { background: #ff7675; }
@@ -18,9 +19,10 @@
   button { margin: 2px; padding: 5px 8px; border: none; border-radius: 5px; cursor: pointer; }
   .approve { background: #00b894; color: white; }
   .reject { background: #d63031; color: white; }
-  #reservas { max-width: 700px; margin: 20px auto; }
   #seleccionSobrino { text-align: center; margin-bottom: 20px; }
-  select { padding: 5px 10px; font-size: 1em; }
+  select, input { padding: 5px 10px; font-size: 1em; }
+  #panelTia { max-width: 700px; margin: 20px auto; padding: 10px; background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: none; }
+  #accesoTia { text-align: center; margin-bottom: 20px; }
 </style>
 </head>
 <body>
@@ -31,17 +33,25 @@
   <label for="sobrinos">Elegí tu nombre: </label>
   <select id="sobrinos">
     <option value="">-- Seleccionar --</option>
-    <option value="Sobrino 1">Sobrino 1</option>
-    <option value="Sobrino 2">Sobrino 2</option>
-    <option value="Sobrino 3">Sobrino 3</option>
-    <!-- Agregá más sobrinos si querés -->
+    <option value="Luz 💘">Luz 💘</option>
+    <option value="Vicky 😜">Vicky 😜</option>
+    <option value="Agus 😈">Agus 😈</option>
+    <option value="Dante 🐴">Dante 🐴</option>
+    <option value="Pili 🥳">Pili 🥳</option>
   </select>
 </div>
 
-<div class="calendar" id="calendar"></div>
+<div id="calendarContainer">
+  <div class="calendar" id="calendar"></div>
+</div>
 
-<div id="reservas">
-  <h2>Reservas Pendientes</h2>
+<div id="accesoTia">
+  <input type="password" id="passwordTia" placeholder="Contraseña tía">
+  <button id="mostrarPanel">Mostrar panel tía</button>
+</div>
+
+<div id="panelTia">
+  <h2>Panel de la Tía: Reservas Pendientes</h2>
   <div id="pendingList"></div>
 </div>
 
@@ -49,9 +59,13 @@
 const calendar = document.getElementById('calendar');
 const pendingList = document.getElementById('pendingList');
 const sobrinosSelect = document.getElementById('sobrinos');
+const panelTia = document.getElementById('panelTia');
+const passwordTia = document.getElementById('passwordTia');
+const mostrarPanelBtn = document.getElementById('mostrarPanel');
 
 let reservas = {}; // {día: {nombre, estado}}
 let sobrinoActual = '';
+const CONTRASENA = 'tia123'; // podés cambiarla
 
 // Selección del sobrino
 sobrinosSelect.addEventListener('change', () => {
@@ -59,11 +73,21 @@ sobrinosSelect.addEventListener('change', () => {
   crearCalendario();
 });
 
+// Mostrar panel tía con contraseña
+mostrarPanelBtn.addEventListener('click', () => {
+  if(passwordTia.value === CONTRASENA){
+    panelTia.style.display = 'block';
+    passwordTia.value = '';
+  } else {
+    alert('Contraseña incorrecta');
+  }
+});
+
 // Crear calendario del mes actual
 function crearCalendario() {
   calendar.innerHTML = '';
 
-  if(!sobrinoActual) return; // No mostrar calendario hasta que elijan nombre
+  if(!sobrinoActual) return;
 
   const fecha = new Date();
   const año = fecha.getFullYear();
@@ -80,8 +104,7 @@ function crearCalendario() {
   });
 
   for(let i=0; i<primerDia; i++){
-    const emptyDiv = document.createElement('div');
-    calendar.appendChild(emptyDiv);
+    calendar.appendChild(document.createElement('div'));
   }
 
   for(let i=1; i<=diasMes; i++){
@@ -96,10 +119,14 @@ function crearCalendario() {
       statusDiv.textContent = `${reservas[i].nombre} - ${reservas[i].estado === 'pending' ? 'Pendiente' :
                                   reservas[i].estado === 'approved' ? 'Aprobada' : 'Rechazada'}`;
       dayDiv.appendChild(statusDiv);
+
+      if(reservas[i].estado !== 'rejected'){
+        dayDiv.classList.add('taken');
+      }
     }
 
     dayDiv.addEventListener('click', () => {
-      if(!reservas[i]){
+      if(!reservas[i] || reservas[i].estado === 'rejected'){
         reservas[i] = { nombre: sobrinoActual, estado: 'pending' };
         actualizarPendientes();
         crearCalendario();
@@ -110,7 +137,7 @@ function crearCalendario() {
   }
 }
 
-// Mostrar reservas pendientes
+// Actualizar lista de pendientes en panel tía
 function actualizarPendientes(){
   pendingList.innerHTML = '';
   for(const dia in reservas){
