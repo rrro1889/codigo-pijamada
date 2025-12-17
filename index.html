@@ -6,69 +6,16 @@
 <title>Reservas de la Tía</title>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f2f2f2;
-  margin: 0;
-  padding: 20px;
-}
-
-h1 {
-  text-align: center;
-}
-
-select, button {
-  padding: 8px;
-  margin: 5px;
-  font-size: 16px;
-}
-
-.calendar {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 5px;
-  max-width: 700px;
-  margin: auto;
-}
-
-.weekday {
-  background: #74b9ff;
-  color: white;
-  font-weight: bold;
-  text-align: center;
-  padding: 8px;
-  border-radius: 6px;
-}
-
-.day {
-  background: white;
-  padding: 10px;
-  text-align: center;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.day.taken {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.day.pending {
-  background: #ffeaa7;
-}
-
-.day.approved {
-  background: #55efc4;
-}
-
-#panelTia {
-  display: none;
-  max-width: 700px;
-  margin: 30px auto;
-  background: white;
-  padding: 15px;
-  border-radius: 8px;
-}
+body { font-family: Arial, sans-serif; background: #f2f2f2; margin: 0; padding: 20px; }
+h1 { text-align: center; }
+select, button { padding: 8px; margin: 5px; font-size: 16px; }
+.calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; max-width: 700px; margin: auto; }
+.weekday { background: #74b9ff; color: white; font-weight: bold; text-align: center; padding: 8px; border-radius: 6px; }
+.day { background: white; padding: 10px; text-align: center; border-radius: 6px; cursor: pointer; }
+.day.taken { background: #ccc; cursor: not-allowed; }
+.day.pending { background: #ffeaa7; }
+.day.approved { background: #55efc4; }
+#panelTia { display: none; max-width: 700px; margin: 30px auto; background: white; padding: 15px; border-radius: 8px; }
 </style>
 </head>
 
@@ -153,14 +100,9 @@ function dibujarCalendario() {
 
     div.onclick = () => {
       if (!sobrinoActual || r) return;
-
       fetch(API_URL, {
         method: "POST",
-        body: JSON.stringify({
-          action: "add",
-          dia: i,
-          nombre: sobrinoActual
-        })
+        body: JSON.stringify({ action: "add", dia: i, nombre: sobrinoActual })
       }).then(cargarReservas);
     };
 
@@ -172,28 +114,19 @@ function actualizarPanel() {
   const lista = document.getElementById("listaPendientes");
   lista.innerHTML = "";
 
-  reservas
-    .filter(r => r.estado === "pending")
-    .forEach(r => {
-      const div = document.createElement("div");
-      div.innerHTML = `
-        Día ${r.dia} - ${r.nombre}
-        <button onclick="cambiarEstado(${r.dia}, '${r.nombre}', 'approved')">✔</button>
-        <button onclick="cambiarEstado(${r.dia}, '${r.nombre}', 'rejected')">✖</button>
-      `;
-      lista.appendChild(div);
-    });
+  reservas.filter(r => r.estado === "pending").forEach(r => {
+    const div = document.createElement("div");
+    div.innerHTML = `Día ${r.dia} - ${r.nombre}
+      <button onclick="cambiarEstado(${r.dia}, '${r.nombre}', 'approved')">✔</button>
+      <button onclick="cambiarEstado(${r.dia}, '${r.nombre}', 'rejected')">✖</button>`;
+    lista.appendChild(div);
+  });
 }
 
 function cambiarEstado(dia, nombre, estado) {
   fetch(API_URL, {
     method: "POST",
-    body: JSON.stringify({
-      action: "update",
-      dia,
-      nombre,
-      estado
-    })
+    body: JSON.stringify({ action: "update", dia, nombre, estado })
   }).then(cargarReservas);
 }
 
