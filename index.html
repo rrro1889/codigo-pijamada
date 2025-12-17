@@ -1,176 +1,203 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Reservas de la Tía</title>
+
 <style>
-  body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f5; }
-  h1, h2 { text-align: center; color: #333; }
-  .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; max-width: 700px; margin: 20px auto; }
-  .day, .weekday { padding: 10px; text-align: center; border-radius: 8px; min-height: 60px; display: flex; flex-direction: column; justify-content: center; }
-  .weekday { font-weight: bold; background: #74b9ff; color: white; }
-  .day { background: white; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: transform 0.2s; }
-  .day:hover { transform: scale(1.05); }
-  .day.taken { cursor: not-allowed; opacity: 0.6; }
-  .pending { background: #ffeaa7; }
-  .approved { background: #55efc4; }
-  .rejected { background: #ff7675; }
-  .status { font-size: 0.8em; margin-top: 5px; }
-  button { margin: 2px; padding: 5px 8px; border: none; border-radius: 5px; cursor: pointer; }
-  .approve { background: #00b894; color: white; }
-  .reject { background: #d63031; color: white; }
-  #seleccionSobrino { text-align: center; margin-bottom: 20px; }
-  select { padding: 5px 10px; font-size: 1em; }
-  #panelTia { max-width: 700px; margin: 20px auto; padding: 10px; background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: none; animation: appear 0.5s ease; }
-  #botonSecreto { text-align: center; margin: 20px; }
-  @keyframes appear {
-    from { opacity: 0; transform: scale(0.8); }
-    to { opacity: 1; transform: scale(1); }
-  }
+body {
+  font-family: Arial, sans-serif;
+  background: #f2f2f2;
+  margin: 0;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+}
+
+select, button {
+  padding: 8px;
+  margin: 5px;
+  font-size: 16px;
+}
+
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  max-width: 700px;
+  margin: auto;
+}
+
+.weekday {
+  background: #74b9ff;
+  color: white;
+  font-weight: bold;
+  text-align: center;
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.day {
+  background: white;
+  padding: 10px;
+  text-align: center;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.day.taken {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.day.pending {
+  background: #ffeaa7;
+}
+
+.day.approved {
+  background: #55efc4;
+}
+
+#panelTia {
+  display: none;
+  max-width: 700px;
+  margin: 30px auto;
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+}
 </style>
 </head>
+
 <body>
 
 <h1>Reservas de la Tía</h1>
 
-<div id="seleccionSobrino">
-  <label for="sobrinos">Elegí tu nombre: </label>
-  <select id="sobrinos">
-    <option value="">-- Seleccionar --</option>
-    <option value="Luz 💘">Luz 💘</option>
-    <option value="Vicky 😜">Vicky 😜</option>
-    <option value="Agus 😈">Agus 😈</option>
-    <option value="Dante 🐴">Dante 🐴</option>
-    <option value="Pili 🥳">Pili 🥳</option>
+<div style="text-align:center">
+  <select id="sobrino">
+    <option value="">Elegí tu nombre</option>
+    <option>Luz 💘</option>
+    <option>Vicky 😜</option>
+    <option>Agus 😈</option>
+    <option>Dante 🐴</option>
+    <option>Pili 🥳</option>
   </select>
 </div>
 
 <div class="calendar" id="calendar"></div>
 
-<div id="botonSecreto">
-  <button id="accesoSecreto">Secreto de la tía 😎</button>
+<div style="text-align:center; margin-top:20px;">
+  <button onclick="loginTia()">Panel secreto de la tía 😎</button>
 </div>
 
 <div id="panelTia">
-  <h2>Panel de la Tía: Reservas Pendientes</h2>
-  <div id="pendingList"></div>
+  <h2>Reservas pendientes</h2>
+  <div id="listaPendientes"></div>
 </div>
 
 <script>
-const calendar = document.getElementById('calendar');
-const pendingList = document.getElementById('pendingList');
-const sobrinosSelect = document.getElementById('sobrinos');
-const panelTia = document.getElementById('panelTia');
-const accesoSecreto = document.getElementById('accesoSecreto');
+const API_URL = "https://script.google.com/macros/s/AKfycbyieWs1Dd998WTXmcORnO_yZUqu-kIOl3ArKg6iGHnftr9VBQo4HzIg83pZd0PmUop7kA/exec";
 
-let reservas = {}; // {día: {nombre, estado}}
-let sobrinoActual = '';
-const CONTRASENA = 'tia123'; // podés cambiarla
+let sobrinoActual = "";
+let reservas = [];
 
-// Selección del sobrino
-sobrinosSelect.addEventListener('change', () => {
-  sobrinoActual = sobrinosSelect.value;
-  crearCalendario();
+document.getElementById("sobrino").addEventListener("change", e => {
+  sobrinoActual = e.target.value;
+  cargarReservas();
 });
 
-// Mostrar panel tía con prompt divertido
-accesoSecreto.addEventListener('click', () => {
-  const clave = prompt("🕵️‍♀️ Ingresá la contraseña secreta de la tía:");
-  if(clave === CONTRASENA){
-    panelTia.style.display = 'block';
-    alert("¡Bienvenida tía! 😎 Aquí están todas las reservas.");
-  } else if(clave) {
-    alert("Ups! Contraseña incorrecta 😅");
+function loginTia() {
+  const pass = prompt("Contraseña de la tía:");
+  if (pass === "tia123") {
+    document.getElementById("panelTia").style.display = "block";
+    cargarReservas();
   }
-});
+}
 
-// Crear calendario del mes actual
-function crearCalendario() {
-  calendar.innerHTML = '';
+function cargarReservas() {
+  fetch(API_URL)
+    .then(r => r.json())
+    .then(data => {
+      reservas = data;
+      dibujarCalendario();
+      actualizarPanel();
+    });
+}
 
-  if(!sobrinoActual) return;
+function dibujarCalendario() {
+  const cal = document.getElementById("calendar");
+  cal.innerHTML = "";
 
-  const fecha = new Date();
-  const año = fecha.getFullYear();
-  const mes = fecha.getMonth();
-  const primerDia = new Date(año, mes, 1).getDay();
-  const diasMes = new Date(año, mes + 1, 0).getDate();
-
-  const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-  diasSemana.forEach(dia => {
-    const wd = document.createElement('div');
-    wd.classList.add('weekday');
-    wd.textContent = dia;
-    calendar.appendChild(wd);
+  const dias = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+  dias.forEach(d => {
+    const w = document.createElement("div");
+    w.className = "weekday";
+    w.textContent = d;
+    cal.appendChild(w);
   });
 
-  for(let i=0; i<primerDia; i++){
-    calendar.appendChild(document.createElement('div'));
-  }
+  for (let i = 1; i <= 31; i++) {
+    const div = document.createElement("div");
+    div.className = "day";
+    div.textContent = i;
 
-  for(let i=1; i<=diasMes; i++){
-    const dayDiv = document.createElement('div');
-    dayDiv.classList.add('day');
-    dayDiv.textContent = i;
+    const r = reservas.find(x => Number(x.dia) === i);
 
-    if(reservas[i]){
-      dayDiv.classList.add(reservas[i].estado);
-      const statusDiv = document.createElement('div');
-      statusDiv.classList.add('status');
-      statusDiv.textContent = `${reservas[i].nombre} - ${reservas[i].estado === 'pending' ? 'Pendiente' :
-                                  reservas[i].estado === 'approved' ? 'Aprobada' : 'Rechazada'}`;
-      dayDiv.appendChild(statusDiv);
-
-      if(reservas[i].estado !== 'rejected'){
-        dayDiv.classList.add('taken');
-      }
+    if (r) {
+      div.classList.add("taken", r.estado);
+      div.innerHTML = `${i}<br>${r.nombre}`;
     }
 
-    dayDiv.addEventListener('click', () => {
-      if(!reservas[i] || reservas[i].estado === 'rejected'){
-        reservas[i] = { nombre: sobrinoActual, estado: 'pending' };
-        actualizarPendientes();
-        crearCalendario();
-      }
+    div.onclick = () => {
+      if (!sobrinoActual || r) return;
+
+      fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "add",
+          dia: i,
+          nombre: sobrinoActual
+        })
+      }).then(cargarReservas);
+    };
+
+    cal.appendChild(div);
+  }
+}
+
+function actualizarPanel() {
+  const lista = document.getElementById("listaPendientes");
+  lista.innerHTML = "";
+
+  reservas
+    .filter(r => r.estado === "pending")
+    .forEach(r => {
+      const div = document.createElement("div");
+      div.innerHTML = `
+        Día ${r.dia} - ${r.nombre}
+        <button onclick="cambiarEstado(${r.dia}, '${r.nombre}', 'approved')">✔</button>
+        <button onclick="cambiarEstado(${r.dia}, '${r.nombre}', 'rejected')">✖</button>
+      `;
+      lista.appendChild(div);
     });
-
-    calendar.appendChild(dayDiv);
-  }
 }
 
-// Actualizar lista de pendientes en panel tía
-function actualizarPendientes(){
-  pendingList.innerHTML = '';
-  for(const dia in reservas){
-    if(reservas[dia].estado === 'pending'){
-      const div = document.createElement('div');
-      div.textContent = `Día ${dia} - ${reservas[dia].nombre}`;
-
-      const approveBtn = document.createElement('button');
-      approveBtn.textContent = 'Aprobar';
-      approveBtn.classList.add('approve');
-      approveBtn.onclick = () => {
-        reservas[dia].estado = 'approved';
-        crearCalendario();
-        actualizarPendientes();
-      };
-
-      const rejectBtn = document.createElement('button');
-      rejectBtn.textContent = 'Rechazar';
-      rejectBtn.classList.add('reject');
-      rejectBtn.onclick = () => {
-        reservas[dia].estado = 'rejected';
-        crearCalendario();
-        actualizarPendientes();
-      };
-
-      div.appendChild(approveBtn);
-      div.appendChild(rejectBtn);
-      pendingList.appendChild(div);
-    }
-  }
+function cambiarEstado(dia, nombre, estado) {
+  fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "update",
+      dia,
+      nombre,
+      estado
+    })
+  }).then(cargarReservas);
 }
+
+cargarReservas();
 </script>
 
 </body>
