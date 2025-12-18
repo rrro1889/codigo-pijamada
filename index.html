@@ -1,21 +1,22 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Reservas de la Tía</title>
 
 <style>
-body { font-family: Arial, sans-serif; background: #f2f2f2; margin: 0; padding: 20px; }
-h1 { text-align: center; }
-select, button { padding: 8px; margin: 5px; font-size: 16px; }
-.calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; max-width: 700px; margin: auto; }
-.weekday { background: #74b9ff; color: white; font-weight: bold; text-align: center; padding: 8px; border-radius: 6px; }
-.day { background: white; padding: 10px; text-align: center; border-radius: 6px; cursor: pointer; }
-.day.taken { background: #ccc; cursor: not-allowed; }
-.day.pending { background: #ffeaa7; }
-.day.approved { background: #55efc4; }
-#panelTia { display: none; max-width: 700px; margin: 30px auto; background: white; padding: 15px; border-radius: 8px; }
+body { font-family: Arial; background:#f2f2f2; padding:20px }
+h1 { text-align:center }
+select, button { padding:8px; font-size:16px }
+.calendar { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; max-width:700px; margin:auto }
+.day, .weekday { padding:10px; text-align:center; border-radius:6px }
+.weekday { background:#74b9ff; color:white; font-weight:bold }
+.day { background:white; cursor:pointer }
+.day.taken { cursor:not-allowed }
+.day.pending { background:#ffeaa7 }
+.day.approved { background:#55efc4 }
+#panelTia { display:none; background:white; padding:15px; margin-top:30px; border-radius:8px }
 </style>
 </head>
 
@@ -23,114 +24,106 @@ select, button { padding: 8px; margin: 5px; font-size: 16px; }
 
 <h1>Reservas de la Tía</h1>
 
-<div style="text-align:center">
-  <select id="sobrino">
-    <option value="">Elegí tu nombre</option>
-    <option>Luz 💘</option>
-    <option>Vicky 😜</option>
-    <option>Agus 😈</option>
-    <option>Dante 🐴</option>
-    <option>Pili 🥳</option>
-  </select>
-</div>
+<select id="sobrino">
+  <option value="">Elegí tu nombre</option>
+  <option>Luz 💘</option>
+  <option>Vicky 😜</option>
+  <option>Agus 😈</option>
+  <option>Dante 🐴</option>
+  <option>Pili 🥳</option>
+</select>
 
 <div class="calendar" id="calendar"></div>
 
-<div style="text-align:center; margin-top:20px;">
-  <button onclick="loginTia()">Panel secreto de la tía 😎</button>
-</div>
+<br>
+<button onclick="loginTia()">Panel secreto de la tía 😎</button>
 
 <div id="panelTia">
-  <h2>Reservas pendientes</h2>
-  <div id="listaPendientes"></div>
+  <h3>Reservas pendientes</h3>
+  <div id="lista"></div>
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbxfMbpI3rDOT-jG0eQYV5u8ljaKhnN1VBG95H0yP0_qJx5J-vN5U8TIu_W2Q4Zj1HvWHg/exec";
+const BIN_ID = "69442722d0ea881f40327849"
+const API_KEY = "$2a$10$FR31Kbrr0ff2rjanMsgJ4exQAcBErSQ.UJvh69psys69XFYlurGmi"
 
-let sobrinoActual = "";
-let reservas = [];
+let reservas = []
+let sobrino = ""
 
-document.getElementById("sobrino").addEventListener("change", e => {
-  sobrinoActual = e.target.value;
-  cargarReservas();
-});
+document.getElementById("sobrino").onchange = e => {
+  sobrino = e.target.value
+}
 
-function loginTia() {
-  const pass = prompt("Contraseña de la tía:");
-  if (pass === "tia123") {
-    document.getElementById("panelTia").style.display = "block";
-    cargarReservas();
+function loginTia(){
+  if(prompt("Contraseña de la tía") === "tia123"){
+    document.getElementById("panelTia").style.display = "block"
+    renderPanel()
   }
 }
 
-function cargarReservas() {
-  fetch(API_URL)
-    .then(r => r.json())
-    .then(data => {
-      reservas = data;
-      dibujarCalendario();
-      actualizarPanel();
-    });
+function cargar(){
+  fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`)
+  .then(r=>r.json())
+  .then(d=>{
+    reservas = d.record || []
+    render()
+    renderPanel()
+  })
 }
 
-function dibujarCalendario() {
-  const cal = document.getElementById("calendar");
-  cal.innerHTML = "";
+function guardar(){
+  fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
+    method:"PUT",
+    headers:{
+      "Content-Type":"application/json",
+      "X-Master-Key":API_KEY
+    },
+    body:JSON.stringify(reservas)
+  }).then(cargar)
+}
 
-  const dias = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
-  dias.forEach(d => {
-    const w = document.createElement("div");
-    w.className = "weekday";
-    w.textContent = d;
-    cal.appendChild(w);
-  });
-
-  for (let i = 1; i <= 31; i++) {
-    const div = document.createElement("div");
-    div.className = "day";
-    div.textContent = i;
-
-    const r = reservas.find(x => Number(x.dia) === i);
-
-    if (r) {
-      div.classList.add("taken", r.estado);
-      div.innerHTML = `${i}<br>${r.nombre}`;
+function render(){
+  const cal = document.getElementById("calendar")
+  cal.innerHTML = ""
+  ;["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].forEach(d=>{
+    cal.innerHTML += `<div class="weekday">${d}</div>`
+  })
+  for(let i=1;i<=31;i++){
+    const r = reservas.find(x=>x.dia===i)
+    let cls = "day"
+    let contenido = i
+    if(r){
+      cls += ` taken ${r.estado}`
+      contenido = i + "<br>" + r.nombre + (r.estado==="pending"?" ⏳":" ✔")
     }
-
-    div.onclick = () => {
-      if (!sobrinoActual || r) return;
-      fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({ action: "add", dia: i, nombre: sobrinoActual })
-      }).then(cargarReservas);
-    };
-
-    cal.appendChild(div);
+    cal.innerHTML += `<div class="${cls}" onclick="reservar(${i})">${contenido}</div>`
   }
 }
 
-function actualizarPanel() {
-  const lista = document.getElementById("listaPendientes");
-  lista.innerHTML = "";
-
-  reservas.filter(r => r.estado === "pending").forEach(r => {
-    const div = document.createElement("div");
-    div.innerHTML = `Día ${r.dia} - ${r.nombre}
-      <button onclick="cambiarEstado(${r.dia}, '${r.nombre}', 'approved')">✔</button>
-      <button onclick="cambiarEstado(${r.dia}, '${r.nombre}', 'rejected')">✖</button>`;
-    lista.appendChild(div);
-  });
+function reservar(dia){
+  if(!sobrino) return alert("Elegí tu nombre")
+  if(reservas.find(r=>r.dia===dia)) return alert("Este día ya está reservado")
+  reservas.push({dia,nombre:sobrino,estado:"pending"})
+  guardar()
 }
 
-function cambiarEstado(dia, nombre, estado) {
-  fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({ action: "update", dia, nombre, estado })
-  }).then(cargarReservas);
+function renderPanel(){
+  const l = document.getElementById("lista")
+  l.innerHTML = ""
+  reservas.filter(r=>r.estado==="pending").forEach(r=>{
+    l.innerHTML += `Día ${r.dia} - ${r.nombre}
+    <button onclick="aprobar(${r.dia})">✔</button>
+    <br>`
+  })
 }
 
-cargarReservas();
+function aprobar(dia){
+  const r = reservas.find(r=>r.dia===dia)
+  if(r) r.estado="approved"
+  guardar()
+}
+
+cargar()
 </script>
 
 </body>
