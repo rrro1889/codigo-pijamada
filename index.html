@@ -61,25 +61,34 @@ function loginTia(){
   }
 }
 
-function cargar(){
-  fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`)
-  .then(r=>r.json())
-  .then(d=>{
-    reservas = d.record || []
+async function cargar(){
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`)
+    const data = await res.json()
+    reservas = data.record || []  // Si no hay datos, array vacío
     render()
     renderPanel()
-  })
+  } catch (err) {
+    console.error("Error cargando reservas:", err)
+    reservas = []
+    render()
+  }
 }
 
-function guardar(){
-  fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
-    method:"PUT",
-    headers:{
-      "Content-Type":"application/json",
-      "X-Master-Key":API_KEY
-    },
-    body:JSON.stringify(reservas)
-  }).then(cargar)
+async function guardar(){
+  try {
+    await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
+      method:"PUT",
+      headers:{
+        "Content-Type":"application/json",
+        "X-Master-Key":API_KEY
+      },
+      body:JSON.stringify(reservas)
+    })
+    await cargar()  // recarga después de guardar
+  } catch(err){
+    console.error("Error guardando reservas:", err)
+  }
 }
 
 function render(){
@@ -111,7 +120,7 @@ function renderPanel(){
   const l = document.getElementById("lista")
   l.innerHTML = ""
   reservas.filter(r=>r.estado==="pending").forEach(r=>{
-    l.innerHTML += `Día ${r.dia} - ${r.nombre}
+    l.innerHTML += `Día ${r.dia} - ${r.nombre} 
     <button onclick="aprobar(${r.dia})">✔</button>
     <br>`
   })
@@ -123,6 +132,7 @@ function aprobar(dia){
   guardar()
 }
 
+// cargar al inicio
 cargar()
 </script>
 
