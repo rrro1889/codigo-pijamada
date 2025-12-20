@@ -185,17 +185,21 @@ function reservar(dia){
     return
   }
 
-  const mias = Object.values(reservas)
-    .filter(r=>r.sobrino===sobrino && r.estado!=="cancelada")
+  // Si el sobrino ya tiene otra reserva, borrarla automáticamente
+  const diaAnterior = Object.keys(reservas).find(d=>{
+    const r = reservas[d]
+    return r?.sobrino===sobrino && r.estado!=="disabled"
+  })
 
-  if(mias.length>=1){
-    mostrarMensaje("⚠️ Solo podés reservar 1 día. Si necesitás cambiarlo, avisale a la tía.")
-    return
+  if(diaAnterior && diaAnterior!=dia){
+    delete reservas[diaAnterior]
+    mostrarMensaje(`Cambiaste tu reserva del día ${diaAnterior} al día ${dia}`)
   }
 
+  // Si ya está reservado por otro, no hacer nada
   if(reservas[dia]) return
 
-  reservas[dia]={sobrino,estado:"pending"}
+  reservas[dia]={sobrino, estado:"pending"}
   guardar()
 }
 
@@ -232,11 +236,34 @@ function renderPanel(){
   })
 }
 
-function aprobar(d){ reservas[d].estado="approved"; guardar() }
-function rechazar(d){ delete reservas[d]; guardar() }
-function cancelar(d){ delete reservas[d]; guardar() }
-function inhabilitar(d){ reservas[d]={estado:"disabled"}; guardar() }
-function habilitar(d){ delete reservas[d]; guardar() }
+// Funciones de acción
+function aprobar(d){
+  reservas[d].estado="approved"
+  guardar()
+  mostrarMensaje(`¡Tu reserva del día ${d} fue aprobada! ✅`)
+}
+
+function rechazar(d){ 
+  delete reservas[d]; guardar()
+  mostrarMensaje(`La reserva del día ${d} fue rechazada ✖`)
+}
+
+function cancelar(d){ 
+  delete reservas[d]; guardar()
+  mostrarMensaje(`Cancelaste tu reserva del día ${d}`)
+}
+
+function inhabilitar(d){
+  reservas[d]={estado:"disabled"}
+  guardar()
+  mostrarMensaje(`El día ${d} fue inhabilitado 🚫`)
+}
+
+function habilitar(d){
+  delete reservas[d]
+  guardar()
+  mostrarMensaje(`El día ${d} ahora está disponible 👍`)
+}
 
 render()
 </script>
