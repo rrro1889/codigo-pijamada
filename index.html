@@ -47,7 +47,7 @@ select, button { padding:8px; font-size:16px; border-radius:5px; border:1px soli
 <div id="panelTia">
   <h3>Reservas pendientes</h3>
   <div id="lista"></div>
-  <h3>Días disponibles</h3>
+  <h3>Días disponibles / inhabilitados</h3>
   <div id="listaDias"></div>
 </div>
 
@@ -151,7 +151,11 @@ function renderPanel(){
   ld.innerHTML = "";
   for(let i=1;i<=31;i++){
     const r = reservas.find(r=>r.dia===i);
-    if(!r || r.estado!=="disabled"){
+    if(!r){ 
+      ld.innerHTML += `Día ${i} <button class="panel-btn disable" onclick="inhabilitar(${i})">🚫 Inhabilitar</button><br>`;
+    } else if(r.estado==="disabled"){ 
+      ld.innerHTML += `Día ${i} <button class="panel-btn aprobar" onclick="habilitar(${i})">✅ Habilitar</button><br>`;
+    } else if(r.estado!=="disabled"){ 
       ld.innerHTML += `Día ${i} <button class="panel-btn disable" onclick="inhabilitar(${i})">🚫 Inhabilitar</button><br>`;
     }
   }
@@ -174,6 +178,14 @@ function inhabilitar(dia){
   guardar();
 }
 
+function habilitar(dia){
+  const r = reservas.find(r=>r.dia===dia);
+  if(r && r.estado==="disabled"){ 
+    r.estado = "free";
+    guardar();
+  }
+}
+
 // --- NOTIFICACIONES ---
 function mostrarToast(msg){
   const t = document.createElement("div");
@@ -186,7 +198,7 @@ function mostrarToast(msg){
 const dbRefRealtime = ref(db, 'reservas');
 onValue(dbRefRealtime, (snapshot)=>{
   const nuevas = snapshot.exists() ? Object.values(snapshot.val()) : [];
-  const viejas = [...reservas]; // copia para comparar
+  const viejas = [...reservas]; 
   reservas = nuevas; 
   render();
   renderPanel();
@@ -206,6 +218,7 @@ window.loginTia = loginTia;
 window.aprobar = aprobar;
 window.rechazar = rechazar;
 window.inhabilitar = inhabilitar;
+window.habilitar = habilitar;
 
 cargar();
 </script>
