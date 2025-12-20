@@ -9,13 +9,14 @@ body { font-family: Arial; background:#f2f2f2; padding:20px }
 h1 { text-align:center }
 select, button { padding:8px; font-size:16px }
 .calendar { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; max-width:700px; margin:auto }
-.day, .weekday { padding:10px; text-align:center; border-radius:6px }
+.day, .weekday { padding:10px; text-align:center; border-radius:6px; position: relative; }
 .weekday { background:#74b9ff; color:white; font-weight:bold }
 .day { background:white; cursor:pointer }
-.day.taken { background:#ccc; cursor:not-allowed }
+.day.taken { background:#ccc; cursor:pointer }
 .day.pending { background:#ffeaa7 }
 .day.approved { background:#55efc4 }
 #panelTia { display:none; background:white; padding:15px; margin-top:30px; border-radius:8px }
+.panel-btn { margin-left:5px; }
 </style>
 </head>
 <body>
@@ -97,37 +98,58 @@ select, button { padding:8px; font-size:16px }
     for(let i=1;i<=31;i++){
       const r = reservas.find(x=>x.dia===i);
       let cls = r ? `day taken ${r.estado}` : "day";
-      cal.innerHTML += `<div class="${cls}" onclick="reservar(${i})">${r ? i+"<br>"+r.nombre : i}</div>`;
+      let content = r ? `${i}<br>${r.nombre}` : i;
+      cal.innerHTML += `<div class="${cls}" onclick="tocarDia(${i})">${content}</div>`;
     }
   }
 
-  function reservar(dia){
-    if(!sobrino) return alert("Elegí tu nombre");
-    if(reservas.find(r=>r.dia===dia)) return alert("Este día ya está reservado");
-    reservas.push({dia,nombre:sobrino,estado:"pending"});
-    guardar();
+  function tocarDia(dia){
+    const r = reservas.find(r=>r.dia===dia);
+    if(r){
+      if(r.nombre === sobrino){
+        if(confirm("¿Querés cancelar tu reserva de este día?")) {
+          reservas = reservas.filter(res => res.dia !== dia);
+          guardar();
+        }
+      } else {
+        alert("Este día ya está reservado");
+      }
+    } else {
+      if(!sobrino) return alert("Elegí tu nombre");
+      reservas.push({dia,nombre:sobrino,estado:"pending"});
+      guardar();
+    }
   }
 
   function renderPanel(){
     const l = document.getElementById("lista");
     l.innerHTML = "";
-    reservas.filter(r=>r.estado==="pending").forEach((r,i)=>{
-      l.innerHTML += `Día ${r.dia} - ${r.nombre} <button onclick="aprobar(${i})">✔</button><br>`;
+    reservas.filter(r=>r.estado==="pending").forEach(r=>{
+      l.innerHTML += `Día ${r.dia} - ${r.nombre} 
+        <button class="panel-btn" onclick="aprobar(${r.dia})">✔</button>
+        <button class="panel-btn" onclick="rechazar(${r.dia})">❌</button><br>`;
     });
   }
 
-  function aprobar(index){
-    reservas[index].estado="approved";
+  function aprobar(dia){
+    const r = reservas.find(r=>r.dia===dia);
+    if(r) r.estado="approved";
     guardar();
   }
 
-  // Exponer funciones para que los onclick del HTML funcionen
-  window.reservar = reservar;
+  function rechazar(dia){
+    reservas = reservas.filter(r=>r.dia !== dia);
+    guardar();
+  }
+
+  // Exponer funciones
+  window.tocarDia = tocarDia;
   window.loginTia = loginTia;
   window.aprobar = aprobar;
+  window.rechazar = rechazar;
 
   cargar();
 </script>
 
 </body>
-</html>
+  </html>
