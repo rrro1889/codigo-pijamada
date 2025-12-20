@@ -45,7 +45,6 @@ select, button { padding:8px; font-size:16px }
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
   import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
 
-  // Tu configuración real de Firebase
   const firebaseConfig = {
     apiKey: "AIzaSyAm1-VI_kDEU0yuvVzG7FPAWMnvXzGpxYY",
     authDomain: "reservas-tia.firebaseapp.com",
@@ -121,6 +120,11 @@ select, button { padding:8px; font-size:16px }
     reservas[index].estado="approved";
     guardar();
   }
+
+  // Exponer funciones para que los onclick del HTML funcionen
+  window.reservar = reservar;
+  window.loginTia = loginTia;
+  window.aprobar = aprobar;
 
   cargar();
 </script>
