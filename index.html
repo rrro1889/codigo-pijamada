@@ -5,18 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Reservas de la Tía</title>
 <style>
-body { font-family: Arial; background:#f2f2f2; padding:20px }
-h1 { text-align:center }
-select, button { padding:8px; font-size:16px }
+body { font-family: Arial; background:#f0f8ff; padding:20px }
+h1 { text-align:center; color:#2d3436; }
+select, button { padding:8px; font-size:16px; border-radius:5px; border:1px solid #ccc; }
 .calendar { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; max-width:700px; margin:auto }
-.day, .weekday { padding:10px; text-align:center; border-radius:6px; position: relative; }
-.weekday { background:#74b9ff; color:white; font-weight:bold }
-.day { background:white; cursor:pointer }
-.day.taken { background:#ccc; cursor:pointer }
-.day.pending { background:#ffeaa7 }
-.day.approved { background:#55efc4 }
-#panelTia { display:none; background:white; padding:15px; margin-top:30px; border-radius:8px }
-.panel-btn { margin-left:5px; }
+.day, .weekday { padding:10px; text-align:center; border-radius:6px; position: relative; transition: all 0.2s ease; }
+.weekday { background:linear-gradient(to bottom, #74b9ff, #0984e3); color:white; font-weight:bold; }
+.day { background:white; cursor:pointer; border:1px solid #bbb; }
+.day:hover { background:#dfe6e9; }
+.day.taken { background:#b2bec3; cursor:pointer; color:#2d3436; }
+.day.pending { background:#ffeaa7; border:1px solid #fdcb6e; }
+.day.approved { background:#55efc4; border:1px solid #00b894; }
+.day.cancelled { background:#fab1a0; border:1px solid #e17055; }
+#panelTia { display:none; background:white; padding:15px; margin-top:30px; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.1); }
+.panel-btn { margin-left:5px; padding:2px 6px; border-radius:4px; border:none; cursor:pointer; }
+.panel-btn:hover { opacity:0.8; }
+.panel-btn.aprobar { background:#00b894; color:white; }
+.panel-btn.rechazar { background:#e17055; color:white; }
 </style>
 </head>
 <body>
@@ -41,7 +46,6 @@ select, button { padding:8px; font-size:16px }
   <div id="lista"></div>
 </div>
 
-<!-- Firebase -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
   import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
@@ -126,8 +130,8 @@ select, button { padding:8px; font-size:16px }
     l.innerHTML = "";
     reservas.filter(r=>r.estado==="pending").forEach(r=>{
       l.innerHTML += `Día ${r.dia} - ${r.nombre} 
-        <button class="panel-btn" onclick="aprobar(${r.dia})">✔</button>
-        <button class="panel-btn" onclick="rechazar(${r.dia})">❌</button><br>`;
+        <button class="panel-btn aprobar" onclick="aprobar(${r.dia})">✔</button>
+        <button class="panel-btn rechazar" onclick="rechazar(${r.dia})">❌</button><br>`;
     });
   }
 
@@ -142,7 +146,6 @@ select, button { padding:8px; font-size:16px }
     guardar();
   }
 
-  // Exponer funciones
   window.tocarDia = tocarDia;
   window.loginTia = loginTia;
   window.aprobar = aprobar;
@@ -152,4 +155,4 @@ select, button { padding:8px; font-size:16px }
 </script>
 
 </body>
-  </html>
+</html>
