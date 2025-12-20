@@ -98,24 +98,25 @@ async function guardar(){
 function render(){
   const cal = document.getElementById("calendar");
   cal.innerHTML = "";
-  ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].forEach(d=>{
-    cal.innerHTML += `<div class="weekday">${d}</div>`;
-  });
-  for(let i=1;i<=31;i++){
+  const semana = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+  semana.forEach(d => cal.innerHTML += `<div class="weekday">${d}</div>`);
+
+  const fecha = new Date();
+  const año = fecha.getFullYear();
+  const mes = fecha.getMonth();
+  const primerDia = new Date(año, mes, 1).getDay();
+  const diasMes = new Date(año, mes + 1, 0).getDate();
+
+  for(let i=0; i<primerDia; i++) cal.innerHTML += `<div></div>`;
+
+  for(let i=1;i<=diasMes;i++){
     const r = reservas.find(x=>x.dia===i);
     let cls = "day";
     let content = i;
     if(r){
-      if(r.estado==="disabled"){
-        cls = "day disabled";
-        content = "🚫";
-      } else if(r.estado==="approved"){
-        cls += " taken approved";
-        content = r.nombre.split(" ")[1] || "🙂";
-      } else if(r.estado==="pending"){
-        cls += " taken pending";
-        content = `${i}<br>${r.nombre}`;
-      }
+      if(r.estado==="disabled"){ cls="day disabled"; content="🚫"; }
+      else if(r.estado==="approved"){ cls += " taken approved"; content=r.nombre.split(" ")[1] || "🙂"; }
+      else if(r.estado==="pending"){ cls += " taken pending"; content=`${i}<br>${r.nombre}`; }
     }
     cal.innerHTML += `<div class="${cls}" onclick="tocarDia(${i})">${content}</div>`;
   }
@@ -149,7 +150,10 @@ function renderPanel(){
 
   const ld = document.getElementById("listaDias");
   ld.innerHTML = "";
-  for(let i=1;i<=31;i++){
+  const fecha = new Date();
+  const diasMes = new Date(fecha.getFullYear(), fecha.getMonth()+1,0).getDate();
+
+  for(let i=1;i<=diasMes;i++){
     const r = reservas.find(r=>r.dia===i);
     if(!r){ 
       ld.innerHTML += `Día ${i} <button class="panel-btn disable" onclick="inhabilitar(${i})">🚫 Inhabilitar</button><br>`;
