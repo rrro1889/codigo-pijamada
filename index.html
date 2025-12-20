@@ -124,6 +124,8 @@ function render(){
 
 function tocarDia(dia){
   const r = reservas.find(r=>r.dia===dia);
+  const reservasSobrino = reservas.filter(res => res.nombre === sobrino && res.estado!=="disabled");
+
   if(r){
     if(r.estado==="disabled"){ alert("Este día está inhabilitado"); return; }
     if(r.nombre === sobrino){
@@ -131,9 +133,17 @@ function tocarDia(dia){
         reservas = reservas.filter(res => res.dia !== dia);
         guardar();
       }
-    } else { alert("Este día ya está reservado"); }
+    } else { 
+      alert("Este día ya está reservado"); 
+    }
   } else {
     if(!sobrino) return alert("Elegí tu nombre");
+
+    if(reservasSobrino.length >= 2){ 
+      mostrarToast("⚠️ Ya hiciste muchas reservas (máx. 2)"); 
+      return; 
+    }
+
     reservas.push({dia,nombre:sobrino,estado:"pending"});
     guardar();
   }
