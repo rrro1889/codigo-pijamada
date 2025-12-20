@@ -5,44 +5,70 @@
 <title>Reservas de la Tía</title>
 
 <style>
-body { font-family: Arial; background:#f2f2f2; padding:20px; text-align:center }
-h1 { margin-bottom:10px }
+body{
+  font-family: Arial;
+  background:#f2f2f2;
+  padding:20px;
+  text-align:center;
+}
 
-select, button { padding:8px; font-size:16px; margin:5px }
+h1{ margin-bottom:10px }
 
-.calendar {
+select, button{
+  padding:8px;
+  font-size:16px;
+  margin:5px;
+}
+
+.calendar{
   display:grid;
   grid-template-columns:repeat(7,1fr);
   gap:5px;
   max-width:420px;
-  margin:auto
+  margin:auto;
 }
 
-.weekday {
+.weekday{
   background:#74b9ff;
   color:white;
   padding:8px;
   border-radius:6px;
-  font-weight:bold
+  font-weight:bold;
 }
 
-.day {
+.day{
   background:white;
   padding:12px;
   border-radius:6px;
   cursor:pointer;
-  border:1px solid #ccc
+  border:1px solid #ccc;
 }
 
-.day.pending { background:#ffeaa7 }
-.day.approved { background:#55efc4; font-size:22px }
-.day.disabled { background:#ccc; cursor:not-allowed }
+.day.pending{ background:#ffeaa7 }
+.day.approved{ background:#55efc4; font-size:22px }
+.day.disabled{
+  background:#ccc;
+  color:#666;
+  cursor:not-allowed;
+}
 
-#panelTia {
+#panelTia{
   background:white;
   padding:15px;
   margin-top:25px;
-  border-radius:8px
+  border-radius:8px;
+  display:none;
+}
+
+#mensaje{
+  display:none;
+  background:#ffeaa7;
+  color:#6b4f00;
+  padding:10px;
+  border-radius:8px;
+  margin:10px auto;
+  max-width:420px;
+  font-weight:bold;
 }
 </style>
 </head>
@@ -60,12 +86,14 @@ select, button { padding:8px; font-size:16px; margin:5px }
   <option value="Pili">Pili 🥳</option>
 </select>
 
+<div id="mensaje"></div>
+
 <div class="calendar" id="calendar"></div>
 
 <br>
 <button onclick="loginTia()">Panel secreto de la tía 😎</button>
 
-<div id="panelTia" style="display:none">
+<div id="panelTia">
   <h3>Panel de la tía</h3>
   <div id="lista"></div>
 </div>
@@ -83,6 +111,13 @@ let reservas = JSON.parse(localStorage.getItem("reservas")) || {}
 let sobrino = ""
 
 document.getElementById("sobrino").onchange = e => sobrino = e.target.value
+
+function mostrarMensaje(txt){
+  const m = document.getElementById("mensaje")
+  m.innerText = txt
+  m.style.display = "block"
+  setTimeout(()=> m.style.display="none", 3000)
+}
 
 function guardar(){
   localStorage.setItem("reservas", JSON.stringify(reservas))
@@ -140,10 +175,23 @@ function render(){
 }
 
 function reservar(dia){
-  if(!sobrino) return alert("Elegí tu nombre")
+  if(!sobrino){
+    mostrarMensaje("Elegí tu nombre primero 😊")
+    return
+  }
 
-  const mias = Object.values(reservas).filter(r=>r.sobrino===sobrino && r.estado!=="cancelada")
-  if(mias.length>=1) return alert("Ya hiciste una reserva")
+  if(reservas[dia]?.estado==="disabled"){
+    mostrarMensaje("🚫 Este día no está disponible")
+    return
+  }
+
+  const mias = Object.values(reservas)
+    .filter(r=>r.sobrino===sobrino && r.estado!=="cancelada")
+
+  if(mias.length>=1){
+    mostrarMensaje("⚠️ Solo podés reservar 1 día. Si necesitás cambiarlo, avisale a la tía.")
+    return
+  }
 
   if(reservas[dia]) return
 
@@ -162,19 +210,31 @@ function renderPanel(){
       l.innerHTML+=`
       Día ${d} - ${r.sobrino}
       <button onclick="aprobar(${d})">✔</button>
-      <button onclick="rechazar(${d})">✖</button><br>`
+      <button onclick="rechazar(${d})">✖</button>
+      <button onclick="inhabilitar(${d})">🚫</button>
+      <br>`
+    }
+
+    if(r.estado==="approved"){
+      l.innerHTML+=`
+      Día ${d} aprobado
+      <button onclick="cancelar(${d})">Cancelar</button>
+      <button onclick="inhabilitar(${d})">🚫</button>
+      <br>`
     }
 
     if(r.estado==="disabled"){
       l.innerHTML+=`
       Día ${d} inhabilitado
-      <button onclick="habilitar(${d})">Habilitar</button><br>`
+      <button onclick="habilitar(${d})">Habilitar</button>
+      <br>`
     }
   })
 }
 
 function aprobar(d){ reservas[d].estado="approved"; guardar() }
 function rechazar(d){ delete reservas[d]; guardar() }
+function cancelar(d){ delete reservas[d]; guardar() }
 function inhabilitar(d){ reservas[d]={estado:"disabled"}; guardar() }
 function habilitar(d){ delete reservas[d]; guardar() }
 
