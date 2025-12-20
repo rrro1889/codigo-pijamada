@@ -70,11 +70,12 @@ select, button { padding:8px; font-size:16px; margin:5px }
   <div id="lista"></div>
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
+<!-- 🔹 Firebase clásico -->
+<script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js"></script>
 
-// 🔹 Configuración de Firebase
+<script>
+// Configuración Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyAm1-VI_kDEU0yuvVzG7FPAWMnvXzGpxYY",
   authDomain: "reservas-tia.firebaseapp.com",
@@ -84,10 +85,9 @@ const firebaseConfig = {
   messagingSenderId: "1075374491628",
   appId: "1:1075374491628:web:39589fdde043aeff9ca2c9"
 };
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const reservasRef = ref(db, 'reservas/');
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const reservasRef = db.ref('reservas/');
 
 const emojis = {
   Luz:"💋",
@@ -97,118 +97,98 @@ const emojis = {
   Pili:"🥳"
 };
 
-window.reservas = {}
-window.sobrino = ""
+let reservas = {};
+let sobrino = "";
 
-// Funciones expuestas para onclick
-window.reservar = function(dia){
-  if(!window.sobrino) return alert("Elegí tu nombre")
-  const mias = Object.values(window.reservas).filter(r=>r.sobrino===window.sobrino && r.estado!=="cancelada")
-  if(mias.length>=1) return alert("Ya hiciste una reserva")
-  const r = window.reservas[dia]
-  if(r?.estado==="disabled") return alert("Este día no está disponible")
-  if(r) return
-  set(ref(db, 'reservas/'+dia), {sobrino: window.sobrino, estado:"pending"})
+// Selección de sobrino
+document.getElementById("sobrino").onchange = e => sobrino = e.target.value;
+
+// Funciones globales para botones
+function reservar(dia){
+  if(!sobrino) return alert("Elegí tu nombre");
+  const mias = Object.values(reservas).filter(r=>r.sobrino===sobrino && r.estado!=="cancelada");
+  if(mias.length>=1) return alert("Ya hiciste una reserva");
+  const r = reservas[dia];
+  if(r?.estado==="disabled") return alert("Este día no está disponible");
+  if(r) return;
+  reservasRef.child(dia).set({sobrino, estado:"pending"});
 }
 
-window.aprobar = function(d){ set(ref(db, 'reservas/' + d), {sobrino: window.reservas[d].sobrino, estado:"approved"}) }
-window.rechazar = function(d){ remove(ref(db, 'reservas/' + d)) }
-window.inhabilitar = function(d){ set(ref(db, 'reservas/' + d), {estado:"disabled"}) }
-window.habilitar = function(d){ remove(ref(db, 'reservas/' + d)) }
+function aprobar(d){ reservasRef.child(d).set({sobrino: reservas[d].sobrino, estado:"approved"}); }
+function rechazar(d){ reservasRef.child(d).remove(); }
+function inhabilitar(d){ reservasRef.child(d).set({estado:"disabled"}); }
+function habilitar(d){ reservasRef.child(d).remove(); }
+function cancelar(d){ reservasRef.child(d).remove(); }
 
-document.getElementById("sobrino").onchange = e => window.sobrino = e.target.value
-
+// Panel secreto
 function loginTia(){
   if(prompt("Contraseña de la tía") === "tia123"){
-    document.getElementById("panelTia").style.display = "block"
-    renderPanel()
+    document.getElementById("panelTia").style.display = "block";
+    renderPanel();
   }
 }
 
+// Renderizar calendario
 function render(){
-  const cal = document.getElementById("calendar")
-  cal.innerHTML = ""
+  const cal = document.getElementById("calendar");
+  cal.innerHTML = "";
 
-  const hoy = new Date()
-  const year = hoy.getFullYear()
-  const month = hoy.getMonth()
-  const primerDia = new Date(year,month,1).getDay()
-  const totalDias = new Date(year,month+1,0).getDate()
+  const hoy = new Date();
+  const year = hoy.getFullYear();
+  const month = hoy.getMonth();
+  const primerDia = new Date(year,month,1).getDay();
+  const totalDias = new Date(year,month+1,0).getDate();
 
   ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].forEach(d=>{
-    cal.innerHTML += `<div class="weekday">${d}</div>`
-  })
+    cal.innerHTML += `<div class="weekday">${d}</div>`;
+  });
 
   for(let i=0;i<primerDia;i++){
-    cal.innerHTML += `<div></div>`
+    cal.innerHTML += `<div></div>`;
   }
 
   for(let d=1; d<=totalDias; d++){
-    const r = window.reservas[d]
-    let cls="day"
-    let txt=d
+    const r = reservas[d];
+    let cls="day";
+    let txt=d;
 
     if(r){
-      if(r.estado==="disabled"){
-        cls+=" disabled"
-        txt="🚫"
-      }
-      if(r.estado==="pending"){
-        cls+=" pending"
-        txt=d+"<br>"+r.sobrino
-      }
-      if(r.estado==="approved"){
-        cls+=" approved"
-        txt=emojis[r.sobrino]
-      }
+      if(r.estado==="disabled"){ cls+=" disabled"; txt="🚫"; }
+      if(r.estado==="pending"){ cls+=" pending"; txt=d+"<br>"+r.sobrino; }
+      if(r.estado==="approved"){ cls+=" approved"; txt=emojis[r.sobrino]; }
     }
 
-    cal.innerHTML += `<div class="${cls}" onclick="reservar(${d})">${txt}</div>`
+    cal.innerHTML += `<div class="${cls}" onclick="reservar(${d})">${txt}</div>`;
   }
 }
 
+// Renderizar panel de la tía
 function renderPanel(){
-  const l = document.getElementById("lista")
-  l.innerHTML=""
-  Object.keys(window.reservas).forEach(d=>{
-    const r=window.reservas[d]
-    if(!r) return
+  const l = document.getElementById("lista");
+  l.innerHTML = "";
+  Object.keys(reservas).forEach(d=>{
+    const r=reservas[d];
+    if(!r) return;
     if(r.estado==="pending"){
-      l.innerHTML+=`
-      Día ${d} - ${r.sobrino}
-      <button onclick="aprobar(${d})">✔</button>
-      <button onclick="rechazar(${d})">✖</button>
-      <button onclick="inhabilitar(${d})">🚫</button>
-      <br>`
+      l.innerHTML+=`Día ${d} - ${r.sobrino} <button onclick="aprobar(${d})">✔</button> <button onclick="rechazar(${d})">✖</button> <button onclick="inhabilitar(${d})">🚫</button><br>`;
     }
     if(r.estado==="disabled"){
-      l.innerHTML+=`
-      Día ${d} inhabilitado
-      <button onclick="habilitar(${d})">Habilitar</button><br>`
+      l.innerHTML+=`Día ${d} inhabilitado <button onclick="habilitar(${d})">Habilitar</button><br>`;
     }
     if(r.estado==="approved"){
-      l.innerHTML+=`
-      Día ${d} aprobado (${r.sobrino})
-      <button onclick="cancelar(${d})">Cancelar</button>
-      <button onclick="inhabilitar(${d})">🚫</button>
-      <br>`
+      l.innerHTML+=`Día ${d} aprobado (${r.sobrino}) <button onclick="cancelar(${d})">Cancelar</button> <button onclick="inhabilitar(${d})">🚫</button><br>`;
     }
-  })
+  });
 }
 
-// Cancelar reserva aprobada
-window.cancelar = function(d){
-  remove(ref(db, 'reservas/' + d))
-}
-
-// Escuchar cambios en tiempo real
-onValue(reservasRef, snapshot=>{
-  window.reservas = snapshot.val() || {}
-  render()
+// 🔹 Escuchar Firebase en tiempo real
+reservasRef.on('value', snapshot=>{
+  reservas = snapshot.val() || {};
+  render();
   if(document.getElementById("panelTia").style.display==="block"){
-    renderPanel()
+    renderPanel();
   }
-})
+});
 </script>
 
 </body>
