@@ -2,185 +2,183 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Calendario de Reservas</title>
+<title>Reservas de la Tía</title>
 
 <style>
-body{
-  font-family: Arial, sans-serif;
-  background:#f4f6f8;
-  text-align:center;
-}
+body { font-family: Arial; background:#f2f2f2; padding:20px; text-align:center }
+h1 { margin-bottom:10px }
 
-h2{ margin:10px 0 }
+select, button { padding:8px; font-size:16px; margin:5px }
 
-#calendar{
+.calendar {
   display:grid;
   grid-template-columns:repeat(7,1fr);
-  gap:6px;
+  gap:5px;
   max-width:420px;
-  margin:auto;
+  margin:auto
 }
 
-.day{
-  background:white;
-  border-radius:8px;
-  padding:10px;
-  cursor:pointer;
-  border:1px solid #ccc;
-}
-
-.day:hover{ background:#e6f0ff }
-
-.pending{ background:#fff3cd }
-.approved{
-  background:#d4edda;
-  font-size:22px;
-}
-.disabled{
-  background:#dcdcdc;
-  color:#777;
-  cursor:not-allowed;
-}
-
-button{
-  margin:3px;
-  padding:6px 10px;
+.weekday {
+  background:#74b9ff;
+  color:white;
+  padding:8px;
   border-radius:6px;
-  border:none;
-  cursor:pointer;
+  font-weight:bold
 }
 
-.ok{ background:#4caf50; color:white }
-.no{ background:#f44336; color:white }
+.day {
+  background:white;
+  padding:12px;
+  border-radius:6px;
+  cursor:pointer;
+  border:1px solid #ccc
+}
 
-.mensaje{
-  margin:10px;
-  padding:10px;
-  background:#ffe0e0;
-  color:#b30000;
-  border-radius:8px;
-  display:none;
+.day.pending { background:#ffeaa7 }
+.day.approved { background:#55efc4; font-size:22px }
+.day.disabled { background:#ccc; cursor:not-allowed }
+
+#panelTia {
+  background:white;
+  padding:15px;
+  margin-top:25px;
+  border-radius:8px
 }
 </style>
 </head>
 
 <body>
 
-<h2>📅 Reservas de la Tía</h2>
+<h1>Reservas de la Tía</h1>
 
-<div id="calendar"></div>
-<div id="msg" class="mensaje"></div>
+<select id="sobrino">
+  <option value="">Elegí tu nombre</option>
+  <option value="Luz">Luz 💋</option>
+  <option value="Vicky">Vicky 😜</option>
+  <option value="Agus">Agus 😈</option>
+  <option value="Dante">Dante 🐴</option>
+  <option value="Pili">Pili 🥳</option>
+</select>
 
-<h3>👩‍🦰 Panel de la Tía</h3>
-<div id="panel"></div>
+<div class="calendar" id="calendar"></div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getDatabase, ref, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
+<br>
+<button onclick="loginTia()">Panel secreto de la tía 😎</button>
 
-const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "reservas-tia.firebaseapp.com",
-  databaseURL: "https://reservas-tia-default-rtdb.firebaseio.com",
-  projectId: "reservas-tia",
-  storageBucket: "reservas-tia.appspot.com",
-  messagingSenderId: "1075374491628",
-  appId: "1:1075374491628:web:39589fdde043aeff9ca2c9"
-};
+<div id="panelTia" style="display:none">
+  <h3>Panel de la tía</h3>
+  <div id="lista"></div>
+</div>
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
+<script>
 const emojis = {
-  "Luz":"💋",
-  "Juan":"🧢",
-  "Sofi":"🌸"
-};
-
-let sobrino = prompt("¿Quién sos? (Luz / Juan / Sofi)");
-if(!emojis[sobrino]) sobrino="Luz";
-
-const cal = document.getElementById("calendar");
-const panel = document.getElementById("panel");
-const msg = document.getElementById("msg");
-
-function aviso(texto){
-  msg.innerText = texto;
-  msg.style.display="block";
-  setTimeout(()=>msg.style.display="none",3000);
+  Luz:"💋",
+  Vicky:"😜",
+  Agus:"😈",
+  Dante:"🐴",
+  Pili:"🥳"
 }
 
-const hoy = new Date();
-const year = hoy.getFullYear();
-const month = hoy.getMonth();
+let reservas = JSON.parse(localStorage.getItem("reservas")) || {}
+let sobrino = ""
 
-function render(reservas){
-  cal.innerHTML="";
-  panel.innerHTML="";
+document.getElementById("sobrino").onchange = e => sobrino = e.target.value
 
-  const primer = new Date(year,month,1).getDay();
-  const total = new Date(year,month+1,0).getDate();
+function guardar(){
+  localStorage.setItem("reservas", JSON.stringify(reservas))
+  render()
+  renderPanel()
+}
 
-  for(let i=0;i<primer;i++) cal.innerHTML+="<div></div>";
+function loginTia(){
+  if(prompt("Contraseña de la tía") === "tia123"){
+    document.getElementById("panelTia").style.display = "block"
+    renderPanel()
+  }
+}
 
-  for(let d=1;d<=total;d++){
-    const r = reservas[d];
-    let clase="day";
-    let contenido=d;
+function render(){
+  const cal = document.getElementById("calendar")
+  cal.innerHTML = ""
+
+  const hoy = new Date()
+  const year = hoy.getFullYear()
+  const month = hoy.getMonth()
+  const primerDia = new Date(year,month,1).getDay()
+  const totalDias = new Date(year,month+1,0).getDate()
+
+  ;["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].forEach(d=>{
+    cal.innerHTML += `<div class="weekday">${d}</div>`
+  })
+
+  for(let i=0;i<primerDia;i++){
+    cal.innerHTML += `<div></div>`
+  }
+
+  for(let d=1; d<=totalDias; d++){
+    const r = reservas[d]
+    let cls="day"
+    let txt=d
 
     if(r){
       if(r.estado==="disabled"){
-        clase="day disabled";
-        contenido="🚫";
+        cls+=" disabled"
+        txt="🚫"
       }
       if(r.estado==="pending"){
-        clase="day pending";
-        contenido=d+"<br>"+r.sobrino;
+        cls+=" pending"
+        txt=d+"<br>"+r.sobrino
       }
       if(r.estado==="approved"){
-        clase="day approved";
-        contenido=emojis[r.sobrino];
+        cls+=" approved"
+        txt=emojis[r.sobrino]
       }
     }
 
-    cal.innerHTML+=`<div class="${clase}" onclick="clickDia(${d})">${contenido}</div>`;
+    cal.innerHTML += `<div class="${cls}" onclick="reservar(${d})">${txt}</div>`
   }
+}
+
+function reservar(dia){
+  if(!sobrino) return alert("Elegí tu nombre")
+
+  const mias = Object.values(reservas).filter(r=>r.sobrino===sobrino && r.estado!=="cancelada")
+  if(mias.length>=1) return alert("Ya hiciste una reserva")
+
+  if(reservas[dia]) return
+
+  reservas[dia]={sobrino,estado:"pending"}
+  guardar()
+}
+
+function renderPanel(){
+  const l = document.getElementById("lista")
+  l.innerHTML=""
 
   Object.keys(reservas).forEach(d=>{
-    const r=reservas[d];
+    const r=reservas[d]
+
     if(r.estado==="pending"){
-      panel.innerHTML+=`
+      l.innerHTML+=`
       Día ${d} - ${r.sobrino}
-      <button class="ok" onclick="aprobar(${d})">Aceptar</button>
-      <button class="no" onclick="rechazar(${d})">Rechazar</button><br>`;
+      <button onclick="aprobar(${d})">✔</button>
+      <button onclick="rechazar(${d})">✖</button><br>`
     }
-  });
+
+    if(r.estado==="disabled"){
+      l.innerHTML+=`
+      Día ${d} inhabilitado
+      <button onclick="habilitar(${d})">Habilitar</button><br>`
+    }
+  })
 }
 
-window.clickDia = dia =>{
-  onValue(ref(db,"reservas"), snap=>{
-    const all=snap.val()||{};
-    const mias=Object.values(all).filter(x=>x.sobrino===sobrino);
-    if(mias.length>=1){
-      aviso("⚠️ Ya hiciste una reserva");
-      return;
-    }
+function aprobar(d){ reservas[d].estado="approved"; guardar() }
+function rechazar(d){ delete reservas[d]; guardar() }
+function inhabilitar(d){ reservas[d]={estado:"disabled"}; guardar() }
+function habilitar(d){ delete reservas[d]; guardar() }
 
-    if(!all[dia]){
-      set(ref(db,"reservas/"+dia),{
-        sobrino,
-        estado:"pending"
-      });
-    }
-  },{once:true});
-}
-
-window.aprobar = dia => update(ref(db,"reservas/"+dia),{estado:"approved"});
-window.rechazar = dia => remove(ref(db,"reservas/"+dia));
-
-onValue(ref(db,"reservas"), snap=>{
-  render(snap.val()||{});
-});
+render()
 </script>
 
 </body>
