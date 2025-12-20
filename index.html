@@ -9,13 +9,13 @@ body { font-family: Arial; background:#f0f8ff; padding:20px }
 h1 { text-align:center; color:#2d3436; }
 select, button { padding:8px; font-size:16px; border-radius:5px; border:1px solid #ccc; }
 .calendar { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; max-width:700px; margin:auto }
-.day, .weekday { padding:10px; text-align:center; border-radius:6px; position: relative; transition: all 0.2s ease; }
-.weekday { background:linear-gradient(to bottom, #74b9ff, #0984e3); color:white; font-weight:bold; }
+.day, .weekday { padding:10px; text-align:center; border-radius:6px; position: relative; transition: all 0.2s ease; font-size:18px; }
+.weekday { background:linear-gradient(to bottom, #74b9ff, #0984e3); color:white; font-weight:bold }
 .day { background:white; cursor:pointer; border:1px solid #bbb; }
 .day:hover { background:#dfe6e9; }
 .day.taken { background:#b2bec3; cursor:pointer; color:#2d3436; }
 .day.pending { background:#ffeaa7; border:1px solid #fdcb6e; }
-.day.approved { background:#55efc4; border:1px solid #00b894; }
+.day.approved { background:#55efc4; border:1px solid #00b894; font-size:24px; }
 .day.cancelled { background:#fab1a0; border:1px solid #e17055; }
 #panelTia { display:none; background:white; padding:15px; margin-top:30px; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.1); }
 .panel-btn { margin-left:5px; padding:2px 6px; border-radius:4px; border:none; cursor:pointer; }
@@ -30,11 +30,11 @@ select, button { padding:8px; font-size:16px; border-radius:5px; border:1px soli
 
 <select id="sobrino">
   <option value="">Elegí tu nombre</option>
-  <option>Luz 💋</option>
-  <option>Vicky 😜</option>
-  <option>Agus 😈</option>
-  <option>Dante 🐴</option>
-  <option>Pili 🥳</option>
+  <option value="Luz 💋">Luz 💋</option>
+  <option value="Vicky 😜">Vicky 😜</option>
+  <option value="Agus 😈">Agus 😈</option>
+  <option value="Dante 🐴">Dante 🐴</option>
+  <option value="Pili 🥳">Pili 🥳</option>
 </select>
 
 <div class="calendar" id="calendar"></div>
@@ -102,7 +102,16 @@ select, button { padding:8px; font-size:16px; border-radius:5px; border:1px soli
     for(let i=1;i<=31;i++){
       const r = reservas.find(x=>x.dia===i);
       let cls = r ? `day taken ${r.estado}` : "day";
-      let content = r ? `${i}<br>${r.nombre}` : i;
+      let content = i;
+      if(r){
+        if(r.estado==="approved"){
+          // Solo emoji aprobado
+          const emoji = r.nombre.split(" ")[1] || "🙂";
+          content = emoji;
+        } else {
+          content = `${i}<br>${r.nombre}`;
+        }
+      }
       cal.innerHTML += `<div class="${cls}" onclick="tocarDia(${i})">${content}</div>`;
     }
   }
