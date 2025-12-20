@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Reservas de la Tía</title>
-
 <style>
 body { font-family: Arial; background:#f2f2f2; padding:20px }
 h1 { text-align:center }
@@ -13,20 +12,19 @@ select, button { padding:8px; font-size:16px }
 .day, .weekday { padding:10px; text-align:center; border-radius:6px }
 .weekday { background:#74b9ff; color:white; font-weight:bold }
 .day { background:white; cursor:pointer }
-.day.taken { cursor:not-allowed }
+.day.taken { background:#ccc; cursor:not-allowed }
 .day.pending { background:#ffeaa7 }
 .day.approved { background:#55efc4 }
 #panelTia { display:none; background:white; padding:15px; margin-top:30px; border-radius:8px }
 </style>
 </head>
-
 <body>
 
 <h1>Reservas de la Tía</h1>
 
 <select id="sobrino">
   <option value="">Elegí tu nombre</option>
-  <option>Luz 💘</option>
+  <option>Luz 💋</option>
   <option>Vicky 😜</option>
   <option>Agus 😈</option>
   <option>Dante 🐴</option>
@@ -34,7 +32,6 @@ select, button { padding:8px; font-size:16px }
 </select>
 
 <div class="calendar" id="calendar"></div>
-
 <br>
 <button onclick="loginTia()">Panel secreto de la tía 😎</button>
 
@@ -43,97 +40,89 @@ select, button { padding:8px; font-size:16px }
   <div id="lista"></div>
 </div>
 
-<script>
-const BIN_ID = "69442722d0ea881f40327849"
-const API_KEY = "$2a$10$FR31Kbrr0ff2rjanMsgJ4exQAcBErSQ.UJvh69psys69XFYlurGmi"
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+  import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
 
-let reservas = []
-let sobrino = ""
+  // Tu configuración real de Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyAm1-VI_kDEU0yuvVzG7FPAWMnvXzGpxYY",
+    authDomain: "reservas-tia.firebaseapp.com",
+    databaseURL: "https://reservas-tia-default-rtdb.firebaseio.com",
+    projectId: "reservas-tia",
+    storageBucket: "reservas-tia.firebasestorage.app",
+    messagingSenderId: "1075374491628",
+    appId: "1:1075374491628:web:39589fdde043aeff9ca2c9"
+  };
 
-document.getElementById("sobrino").onchange = e => {
-  sobrino = e.target.value
-}
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
-function loginTia(){
-  if(prompt("Contraseña de la tía") === "tia123"){
-    document.getElementById("panelTia").style.display = "block"
-    renderPanel()
+  let reservas = [];
+  let sobrino = "";
+
+  document.getElementById("sobrino").onchange = e => {
+    sobrino = e.target.value;
   }
-}
 
-async function cargar(){
-  try {
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`)
-    const data = await res.json()
-    reservas = data.record || []  // Si no hay datos, array vacío
-    render()
-    renderPanel()
-  } catch (err) {
-    console.error("Error cargando reservas:", err)
-    reservas = []
-    render()
-  }
-}
-
-async function guardar(){
-  try {
-    await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
-      method:"PUT",
-      headers:{
-        "Content-Type":"application/json",
-        "X-Master-Key":API_KEY
-      },
-      body:JSON.stringify(reservas)
-    })
-    await cargar()  // recarga después de guardar
-  } catch(err){
-    console.error("Error guardando reservas:", err)
-  }
-}
-
-function render(){
-  const cal = document.getElementById("calendar")
-  cal.innerHTML = ""
-  ;["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].forEach(d=>{
-    cal.innerHTML += `<div class="weekday">${d}</div>`
-  })
-  for(let i=1;i<=31;i++){
-    const r = reservas.find(x=>x.dia===i)
-    let cls = "day"
-    let contenido = i
-    if(r){
-      cls += ` taken ${r.estado}`
-      contenido = i + "<br>" + r.nombre + (r.estado==="pending"?" ⏳":" ✔")
+  function loginTia(){
+    if(prompt("Contraseña de la tía") === "tia123"){
+      document.getElementById("panelTia").style.display = "block";
+      renderPanel();
     }
-    cal.innerHTML += `<div class="${cls}" onclick="reservar(${i})">${contenido}</div>`
   }
-}
 
-function reservar(dia){
-  if(!sobrino) return alert("Elegí tu nombre")
-  if(reservas.find(r=>r.dia===dia)) return alert("Este día ya está reservado")
-  reservas.push({dia,nombre:sobrino,estado:"pending"})
-  guardar()
-}
+  async function cargar(){
+    const dbRef = ref(db);
+    const snapshot = await get(child(dbRef, 'reservas'));
+    reservas = snapshot.exists() ? Object.values(snapshot.val()) : [];
+    render();
+    renderPanel();
+  }
 
-function renderPanel(){
-  const l = document.getElementById("lista")
-  l.innerHTML = ""
-  reservas.filter(r=>r.estado==="pending").forEach(r=>{
-    l.innerHTML += `Día ${r.dia} - ${r.nombre} 
-    <button onclick="aprobar(${r.dia})">✔</button>
-    <br>`
-  })
-}
+  async function guardar(){
+    const dbRef = ref(db);
+    const updates = {};
+    reservas.forEach((r,i)=> updates[i] = r);
+    await set(child(dbRef, 'reservas'), updates);
+    cargar();
+  }
 
-function aprobar(dia){
-  const r = reservas.find(r=>r.dia===dia)
-  if(r) r.estado="approved"
-  guardar()
-}
+  function render(){
+    const cal = document.getElementById("calendar");
+    cal.innerHTML = "";
+    ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].forEach(d=>{
+      cal.innerHTML += `<div class="weekday">${d}</div>`;
+    });
+    for(let i=1;i<=31;i++){
+      const r = reservas.find(x=>x.dia===i);
+      let cls = r ? `day taken ${r.estado}` : "day";
+      cal.innerHTML += `<div class="${cls}" onclick="reservar(${i})">${r ? i+"<br>"+r.nombre : i}</div>`;
+    }
+  }
 
-// cargar al inicio
-cargar()
+  function reservar(dia){
+    if(!sobrino) return alert("Elegí tu nombre");
+    if(reservas.find(r=>r.dia===dia)) return alert("Este día ya está reservado");
+    reservas.push({dia,nombre:sobrino,estado:"pending"});
+    guardar();
+  }
+
+  function renderPanel(){
+    const l = document.getElementById("lista");
+    l.innerHTML = "";
+    reservas.filter(r=>r.estado==="pending").forEach((r,i)=>{
+      l.innerHTML += `Día ${r.dia} - ${r.nombre} <button onclick="aprobar(${i})">✔</button><br>`;
+    });
+  }
+
+  function aprobar(index){
+    reservas[index].estado="approved";
+    guardar();
+  }
+
+  cargar();
 </script>
 
 </body>
