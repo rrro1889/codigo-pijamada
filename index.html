@@ -17,7 +17,7 @@ select, button { padding:8px; font-size:16px; border-radius:5px; border:1px soli
 .day.pending { background:#ffeaa7; border:1px solid #fdcb6e; }
 .day.approved { background:#55efc4; border:1px solid #00b894; font-size:24px; }
 .day.cancelled { background:#fab1a0; border:1px solid #e17055; }
-.day.disabled { background:#636e72; color:white; cursor:not-allowed; }
+.day.disabled { background:#636e72; color:white; cursor:not-allowed; font-size:20px; }
 #panelTia { display:none; background:white; padding:15px; margin-top:30px; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.1); }
 .panel-btn { margin-left:5px; padding:2px 6px; border-radius:4px; border:none; cursor:pointer; }
 .panel-btn:hover { opacity:0.8; }
@@ -52,69 +52,162 @@ select, button { padding:8px; font-size:16px; border-radius:5px; border:1px soli
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-  import { getDatabase, ref, set, get, child, onValue } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getDatabase, ref, set, get, child, onValue } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAm1-VI_kDEU0yuvVzG7FPAWMnvXzGpxYY",
-    authDomain: "reservas-tia.firebaseapp.com",
-    databaseURL: "https://reservas-tia-default-rtdb.firebaseio.com",
-    projectId: "reservas-tia",
-    storageBucket: "reservas-tia.firebasestorage.app",
-    messagingSenderId: "1075374491628",
-    appId: "1:1075374491628:web:39589fdde043aeff9ca2c9"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyAm1-VI_kDEU0yuvVzG7FPAWMnvXzGpxYY",
+  authDomain: "reservas-tia.firebaseapp.com",
+  databaseURL: "https://reservas-tia-default-rtdb.firebaseio.com",
+  projectId: "reservas-tia",
+  storageBucket: "reservas-tia.firebasestorage.app",
+  messagingSenderId: "1075374491628",
+  appId: "1:1075374491628:web:39589fdde043aeff9ca2c9"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-  let reservas = [];
-  let sobrino = "";
+let reservas = [];
+let sobrino = "";
 
-  document.getElementById("sobrino").onchange = e => {
-    sobrino = e.target.value;
-  }
+document.getElementById("sobrino").onchange = e => { sobrino = e.target.value; }
 
-  function loginTia(){
-    if(prompt("Contraseña de la tía") === "tia123"){
-      document.getElementById("panelTia").style.display = "block";
-      renderPanel();
-    }
-  }
-
-  async function cargar(){
-    const dbRef = ref(db);
-    const snapshot = await get(child(dbRef, 'reservas'));
-    reservas = snapshot.exists() ? Object.values(snapshot.val()) : [];
-    render();
+function loginTia(){
+  if(prompt("Contraseña de la tía") === "tia123"){
+    document.getElementById("panelTia").style.display = "block";
     renderPanel();
   }
+}
 
-  async function guardar(){
-    const dbRef = ref(db);
-    const updates = {};
-    reservas.forEach((r,i)=> updates[i] = r);
-    await set(child(dbRef, 'reservas'), updates);
-    // La carga ya se hace con onValue
+async function cargar(){
+  const dbRef = ref(db);
+  const snapshot = await get(child(dbRef, 'reservas'));
+  reservas = snapshot.exists() ? Object.values(snapshot.val()) : [];
+  render();
+  renderPanel();
+}
+
+async function guardar(){
+  const dbRef = ref(db);
+  const updates = {};
+  reservas.forEach((r,i)=> updates[i] = r);
+  await set(child(dbRef, 'reservas'), updates);
+}
+
+function render(){
+  const cal = document.getElementById("calendar");
+  cal.innerHTML = "";
+  ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].forEach(d=>{
+    cal.innerHTML += `<div class="weekday">${d}</div>`;
+  });
+  for(let i=1;i<=31;i++){
+    const r = reservas.find(x=>x.dia===i);
+    let cls = "day";
+    let content = i;
+    if(r){
+      if(r.estado==="disabled"){
+        cls = "day disabled";
+        content = "🚫";
+      } else if(r.estado==="approved"){
+        cls += " taken approved";
+        content = r.nombre.split(" ")[1] || "🙂";
+      } else if(r.estado==="pending"){
+        cls += " taken pending";
+        content = `${i}<br>${r.nombre}`;
+      }
+    }
+    cal.innerHTML += `<div class="${cls}" onclick="tocarDia(${i})">${content}</div>`;
   }
+}
 
-  function render(){
-    const cal = document.getElementById("calendar");
-    cal.innerHTML = "";
-    ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].forEach(d=>{
-      cal.innerHTML += `<div class="weekday">${d}</div>`;
-    });
-    for(let i=1;i<=31;i++){
-      const r = reservas.find(x=>x.dia===i);
-      let cls = "day";
-      let content = i;
-      if(r){
-        if(r.estado==="approved"){
-          cls += " taken approved";
-          content = r.nombre.split(" ")[1] || "🙂";
-        } else if(r.estado==="pending"){
-          cls += " taken pending";
-          content = `${i}<br>${r.nombre}`;
-        } else if(r.estado==="disabled"){
-          cls += " disabled";
-        }
+function tocarDia(dia){
+  const r = reservas.find(r=>r.dia===dia);
+  if(r){
+    if(r.estado==="disabled"){ alert("Este día está inhabilitado"); return; }
+    if(r.nombre === sobrino){
+      if(confirm("¿Querés cancelar tu reserva de este día?")){
+        reservas = reservas.filter(res => res.dia !== dia);
+        guardar();
+      }
+    } else { alert("Este día ya está reservado"); }
+  } else {
+    if(!sobrino) return alert("Elegí tu nombre");
+    reservas.push({dia,nombre:sobrino,estado:"pending"});
+    guardar();
+  }
+}
+
+function renderPanel(){
+  const l = document.getElementById("lista");
+  l.innerHTML = "";
+  reservas.filter(r=>r.estado==="pending").forEach(r=>{
+    l.innerHTML += `Día ${r.dia} - ${r.nombre} 
+      <button class="panel-btn aprobar" onclick="aprobar(${r.dia})">✔</button>
+      <button class="panel-btn rechazar" onclick="rechazar(${r.dia})">❌</button><br>`;
+  });
+
+  const ld = document.getElementById("listaDias");
+  ld.innerHTML = "";
+  for(let i=1;i<=31;i++){
+    const r = reservas.find(r=>r.dia===i);
+    if(!r || r.estado!=="disabled"){
+      ld.innerHTML += `Día ${i} <button class="panel-btn disable" onclick="inhabilitar(${i})">🚫 Inhabilitar</button><br>`;
+    }
+  }
+}
+
+function aprobar(dia){
+  const r = reservas.find(r=>r.dia===dia);
+  if(r) r.estado="approved";
+  guardar();
+}
+
+function rechazar(dia){
+  reservas = reservas.filter(r=>r.dia !== dia);
+  guardar();
+}
+
+function inhabilitar(dia){
+  const r = reservas.find(r=>r.dia===dia);
+  if(r){ r.estado = "disabled"; } else { reservas.push({dia, nombre:"", estado:"disabled"}); }
+  guardar();
+}
+
+// --- NOTIFICACIONES ---
+function mostrarToast(msg){
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.innerText = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 4000);
+}
+
+const dbRefRealtime = ref(db, 'reservas');
+onValue(dbRefRealtime, (snapshot)=>{
+  const nuevas = snapshot.exists() ? Object.values(snapshot.val()) : [];
+  const viejas = [...reservas]; // copia para comparar
+  reservas = nuevas; 
+  render();
+  renderPanel();
+
+  nuevas.forEach(n=>{
+    const vieja = viejas.find(r=>r.dia===n.dia && r.nombre===n.nombre);
+    if(!vieja){
+      if(n.estado==="approved" && sobrino===n.nombre) mostrarToast(`✅ Tu reserva del día ${n.dia} fue aprobada`);
+      if(n.estado==="disabled") mostrarToast(`🚫 La tía inhabilitó el día ${n.dia}`);
+      if(n.estado==="pending" && sobrino===n.nombre) mostrarToast(`⏳ Tu reserva del día ${n.dia} está pendiente`);
+    }
+  });
+});
+
+window.tocarDia = tocarDia;
+window.loginTia = loginTia;
+window.aprobar = aprobar;
+window.rechazar = rechazar;
+window.inhabilitar = inhabilitar;
+
+cargar();
+</script>
+</body>
+</html>
